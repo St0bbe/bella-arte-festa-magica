@@ -38,9 +38,9 @@ export const Hero = () => {
             <Button 
               size="lg" 
               className="text-lg h-14 px-8 bg-gradient-to-r from-primary to-secondary hover:shadow-[var(--shadow-glow)] transition-all duration-300"
-              onClick={scrollToContact}
+              onClick={() => document.getElementById("orcamento")?.scrollIntoView({ behavior: "smooth" })}
             >
-              Solicite um Orçamento
+              Calcular Orçamento
             </Button>
             <Button 
               size="lg" 
