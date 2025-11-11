@@ -47,6 +47,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        party: {
+          pink: "hsl(330, 81%, 55%)",
+          purple: "hsl(270, 60%, 60%)",
+          gold: "hsl(45, 100%, 60%)",
+          turquoise: "hsl(180, 65%, 55%)",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
