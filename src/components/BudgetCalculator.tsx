@@ -7,12 +7,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Calculator, Sparkles } from "lucide-react";
+import { CalendarIcon, Calculator, Sparkles, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useServices } from "@/hooks/useServices";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface ServiceItem {
   id: string;
@@ -36,11 +37,11 @@ const fallbackServices: ServiceItem[] = [
 export const BudgetCalculator = () => {
   const { toast } = useToast();
   const { data: dbServices, isLoading } = useServices();
+  const { data: settings } = useSiteSettings();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [eventDate, setEventDate] = useState<Date>();
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
     guests: "",
     details: "",
@@ -67,7 +68,7 @@ export const BudgetCalculator = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || selectedServices.length === 0 || !eventDate) {
+    if (!formData.name || !formData.phone || selectedServices.length === 0 || !eventDate) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos obrigatórios e selecione pelo menos um serviço.",
@@ -76,23 +77,32 @@ export const BudgetCalculator = () => {
       return;
     }
 
-    const selectedServiceNames = services
+    const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, "") || "";
+    
+    if (!whatsappNumber) {
+      toast({
+        title: "WhatsApp não configurado",
+        description: "Entre em contato por telefone.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedServicesList = services
       .filter((service) => selectedServices.includes(service.id))
-      .map((s) => s.name)
-      .join(", ");
+      .map((s) => `• ${s.name}: R$ ${s.price.toLocaleString("pt-BR")}`)
+      .join("%0A");
+
+    const total = calculateTotal();
+    const formattedDate = format(eventDate, "dd/MM/yyyy", { locale: ptBR });
+
+    const text = `*🎉 Solicitação de Orçamento*%0A%0A*Nome:* ${encodeURIComponent(formData.name)}%0A*Telefone:* ${encodeURIComponent(formData.phone)}%0A*Data do Evento:* ${formattedDate}%0A*Número de Convidados:* ${formData.guests || "Não informado"}%0A%0A*📋 Serviços Selecionados:*%0A${selectedServicesList}%0A%0A*💰 Total Estimado:* R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%0A%0A*📝 Detalhes:* ${encodeURIComponent(formData.details) || "Nenhum"}`;
+    
+    window.open(`https://wa.me/${whatsappNumber}?text=${text}`, "_blank");
 
     toast({
-      title: "Orçamento enviado com sucesso! 🎉",
-      description: `Total: R$ ${calculateTotal().toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-      })}. Entraremos em contato em breve!`,
-    });
-
-    console.log("Orçamento:", {
-      ...formData,
-      eventDate: eventDate?.toISOString(),
-      services: selectedServiceNames,
-      total: calculateTotal(),
+      title: "Redirecionando para o WhatsApp! 🎉",
+      description: "Você será direcionado para o WhatsApp com seu orçamento.",
     });
 
     // Reset form
@@ -100,7 +110,6 @@ export const BudgetCalculator = () => {
     setEventDate(undefined);
     setFormData({
       name: "",
-      email: "",
       phone: "",
       guests: "",
       details: "",
@@ -121,7 +130,7 @@ export const BudgetCalculator = () => {
             Calcule seu Orçamento
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground">
-            Selecione os serviços desejados e receba uma estimativa instantânea para sua festa
+            Selecione os serviços desejados e envie seu orçamento diretamente pelo WhatsApp
           </p>
         </div>
 
@@ -195,29 +204,20 @@ export const BudgetCalculator = () => {
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="Seu nome"
                         required
+                        maxLength={100}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="seu@email.com"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone">Telefone</Label>
+                      <Label htmlFor="phone">Telefone *</Label>
                       <Input
                         id="phone"
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="(11) 99999-9999"
+                        required
+                        maxLength={20}
                       />
                     </div>
 
@@ -230,40 +230,41 @@ export const BudgetCalculator = () => {
                         onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
                         placeholder="Ex: 50"
                         min="1"
+                        max="9999"
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <Label>Data do Evento *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !eventDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {eventDate ? (
-                            format(eventDate, "PPP", { locale: ptBR })
-                          ) : (
-                            <span>Selecione a data</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={eventDate}
-                          onSelect={setEventDate}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <div>
+                      <Label>Data do Evento *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !eventDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {eventDate ? (
+                              format(eventDate, "PPP", { locale: ptBR })
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={eventDate}
+                            onSelect={setEventDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
                   <div>
@@ -274,6 +275,7 @@ export const BudgetCalculator = () => {
                       onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                       placeholder="Conte-nos mais sobre sua festa: tema, horário, local, necessidades especiais..."
                       rows={4}
+                      maxLength={1000}
                     />
                   </div>
                 </CardContent>
@@ -336,9 +338,10 @@ export const BudgetCalculator = () => {
                       <Button
                         type="submit"
                         size="lg"
-                        className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-[var(--shadow-glow)] transition-all duration-300"
+                        className="w-full bg-[#25D366] hover:bg-[#20BA5C] text-white transition-all duration-300"
                       >
-                        Solicitar Orçamento
+                        <MessageCircle className="w-5 h-5 mr-2" />
+                        Enviar pelo WhatsApp
                       </Button>
                     </>
                   )}
@@ -353,7 +356,7 @@ export const BudgetCalculator = () => {
                     <div className="flex items-start gap-2 text-sm">
                       <span className="text-primary">✓</span>
                       <span className="text-muted-foreground">
-                        Resposta em até 24h
+                        Resposta rápida via WhatsApp
                       </span>
                     </div>
                     <div className="flex items-start gap-2 text-sm">

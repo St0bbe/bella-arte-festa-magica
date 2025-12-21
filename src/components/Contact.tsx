@@ -2,15 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { MessageCircle, Phone, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const Contact = () => {
   const { toast } = useToast();
+  const { data: settings } = useSiteSettings();
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
     message: "",
   });
@@ -18,48 +19,61 @@ export const Contact = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
-    if (!formData.name || !formData.email || !formData.message) {
+    if (!formData.name || !formData.phone || !formData.message) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: "Por favor, preencha todos os campos.",
         variant: "destructive",
       });
       return;
     }
 
-    // In a real application, you would send this data to a backend
+    const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, "") || "";
+    
+    if (!whatsappNumber) {
+      toast({
+        title: "WhatsApp não configurado",
+        description: "Entre em contato por telefone.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const text = `*Nova Mensagem de Contato*%0A%0A*Nome:* ${encodeURIComponent(formData.name)}%0A*Telefone:* ${encodeURIComponent(formData.phone)}%0A*Mensagem:* ${encodeURIComponent(formData.message)}`;
+    
+    window.open(`https://wa.me/${whatsappNumber}?text=${text}`, "_blank");
+
     toast({
-      title: "Mensagem enviada!",
-      description: "Entraremos em contato em breve.",
+      title: "Redirecionando para o WhatsApp!",
+      description: "Você será direcionado para o WhatsApp.",
     });
 
-    // Reset form
     setFormData({
       name: "",
-      email: "",
       phone: "",
       message: "",
     });
   };
 
+  const whatsappNumber = settings?.whatsapp_number?.replace(/\D/g, "") || "";
+
   const contactInfo = [
+    {
+      icon: MessageCircle,
+      title: "WhatsApp",
+      content: settings?.whatsapp_number || "(00) 00000-0000",
+      href: whatsappNumber ? `https://wa.me/${whatsappNumber}` : "#",
+    },
     {
       icon: Phone,
       title: "Telefone",
-      content: "(11) 99999-9999",
-      href: "tel:+5511999999999",
-    },
-    {
-      icon: Mail,
-      title: "Email",
-      content: "contato@bellaarte.com",
-      href: "mailto:contato@bellaarte.com",
+      content: settings?.whatsapp_number || "(00) 00000-0000",
+      href: `tel:+${whatsappNumber}`,
     },
     {
       icon: MapPin,
       title: "Localização",
-      content: "São Paulo, SP",
+      content: "Sua Cidade, Estado",
       href: "#",
     },
   ];
@@ -73,7 +87,7 @@ export const Contact = () => {
               Entre em Contato
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground">
-              Vamos criar juntos a festa dos seus sonhos! Entre em contato para um orçamento personalizado.
+              Vamos criar juntos a festa dos seus sonhos! Entre em contato pelo WhatsApp para um orçamento personalizado.
             </p>
           </div>
 
@@ -91,26 +105,13 @@ export const Contact = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Seu nome completo"
                       required
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                      Email *
-                    </label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="seu@email.com"
-                      required
+                      maxLength={100}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                      Telefone
+                      Telefone *
                     </label>
                     <Input
                       id="phone"
@@ -118,6 +119,8 @@ export const Contact = () => {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
+                      required
+                      maxLength={20}
                     />
                   </div>
 
@@ -132,15 +135,17 @@ export const Contact = () => {
                       placeholder="Conte-nos sobre sua festa..."
                       rows={4}
                       required
+                      maxLength={1000}
                     />
                   </div>
 
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-[var(--shadow-glow)] transition-all duration-300"
+                    className="w-full bg-[#25D366] hover:bg-[#20BA5C] text-white transition-all duration-300"
                   >
-                    Enviar Mensagem
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Enviar pelo WhatsApp
                   </Button>
                 </form>
               </CardContent>
@@ -157,6 +162,8 @@ export const Contact = () => {
                     <CardContent className="p-6">
                       <a 
                         href={info.href}
+                        target={info.href.startsWith("https") ? "_blank" : undefined}
+                        rel={info.href.startsWith("https") ? "noopener noreferrer" : undefined}
                         className="flex items-center gap-4 group"
                       >
                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
