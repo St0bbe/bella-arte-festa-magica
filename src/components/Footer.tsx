@@ -1,4 +1,4 @@
-import { Heart, Settings, Sparkles, Phone, Mail, MapPin, PartyPopper, Cake, Gift, Star, Instagram, Facebook } from "lucide-react";
+import { Heart, Settings, Sparkles, Phone, MapPin, PartyPopper, Cake, Gift, Star, Instagram, Facebook, MessageCircle } from "lucide-react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const Footer = () => {
@@ -86,19 +86,23 @@ export const Footer = () => {
                 Contato
               </h4>
               <div className="space-y-3">
+                {settings?.whatsapp_number && (
+                  <a 
+                    href={`https://wa.me/${settings.whatsapp_number.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-background/70 hover:text-primary transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    {settings.whatsapp_number}
+                  </a>
+                )}
                 <a 
-                  href="tel:+5500000000000" 
+                  href={settings?.whatsapp_number ? `tel:+${settings.whatsapp_number.replace(/\D/g, "")}` : "#"}
                   className="flex items-center gap-3 text-background/70 hover:text-primary transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  (00) 00000-0000
-                </a>
-                <a 
-                  href="mailto:contato@bellaarte.com" 
-                  className="flex items-center gap-3 text-background/70 hover:text-primary transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  contato@bellaarte.com
+                  {settings?.whatsapp_number || "(00) 00000-0000"}
                 </a>
                 <div className="flex items-center gap-3 text-background/70">
                   <MapPin className="w-4 h-4" />
