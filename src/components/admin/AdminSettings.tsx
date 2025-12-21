@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings, useUpdateSiteSetting } from "@/hooks/useSiteSettings";
-import { Settings, Upload, Trash2, Save, ImageIcon, Phone, Instagram, Facebook } from "lucide-react";
+import { Settings, Upload, Trash2, Save, ImageIcon, Phone, Instagram, Facebook, MapPin } from "lucide-react";
 
 export function AdminSettings() {
   const { toast } = useToast();
@@ -26,6 +26,8 @@ export function AdminSettings() {
     whatsapp_number: "",
     instagram_url: "",
     facebook_url: "",
+    phone_number: "",
+    address: "",
   });
 
   useEffect(() => {
@@ -39,6 +41,8 @@ export function AdminSettings() {
         whatsapp_number: settings.whatsapp_number || "",
         instagram_url: settings.instagram_url || "",
         facebook_url: settings.facebook_url || "",
+        phone_number: settings.phone_number || "",
+        address: settings.address || "",
       });
     }
   }, [settings]);
@@ -280,6 +284,34 @@ export function AdminSettings() {
                 setFormData({ ...formData, facebook_url: e.target.value })
               }
               placeholder="https://facebook.com/suapagina"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone_number" className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
+              Telefone
+            </Label>
+            <Input
+              id="phone_number"
+              value={formData.phone_number}
+              onChange={(e) =>
+                setFormData({ ...formData, phone_number: e.target.value })
+              }
+              placeholder="Ex: (11) 99999-9999"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address" className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Endereço
+            </Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Ex: Rua das Flores, 123 - Centro, São Paulo"
             />
           </div>
         </CardContent>

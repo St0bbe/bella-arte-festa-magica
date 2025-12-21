@@ -10,6 +10,8 @@ export interface SiteSettings {
   whatsapp_number: string;
   instagram_url: string;
   facebook_url: string;
+  phone_number: string;
+  address: string;
 }
 
 export function useSiteSettings() {
@@ -31,6 +33,8 @@ export function useSiteSettings() {
         whatsapp_number: "",
         instagram_url: "",
         facebook_url: "",
+        phone_number: "",
+        address: "",
       };
       
       data?.forEach((item: { key: string; value: string | null }) => {
