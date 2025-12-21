@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Image, DollarSign, Sparkles } from "lucide-react";
+import { LogOut, Image, DollarSign, Sparkles, Settings } from "lucide-react";
 import { AdminServices } from "@/components/admin/AdminServices";
 import { AdminGallery } from "@/components/admin/AdminGallery";
+import { AdminSettings } from "@/components/admin/AdminSettings";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -94,14 +95,18 @@ export default function Admin() {
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="services" className="space-y-8">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
+          <TabsList className="grid w-full max-w-xl grid-cols-3 mx-auto">
             <TabsTrigger value="services" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Serviços e Preços
+              Serviços
             </TabsTrigger>
             <TabsTrigger value="gallery" className="flex items-center gap-2">
               <Image className="w-4 h-4" />
-              Galeria de Fotos
+              Galeria
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Configurações
             </TabsTrigger>
           </TabsList>
 
@@ -111,6 +116,10 @@ export default function Admin() {
 
           <TabsContent value="gallery">
             <AdminGallery />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AdminSettings />
           </TabsContent>
         </Tabs>
       </main>
