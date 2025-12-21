@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Heart, Star, Users } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const features = [
   {
@@ -20,6 +21,17 @@ const features = [
 ];
 
 export const About = () => {
+  const { data: settings } = useSiteSettings();
+
+  const title = settings?.about_title || "Sobre a Bella Arte";
+  const description = settings?.about_description || 
+    "Somos especialistas em transformar sonhos em realidade! Com anos de experiência em decoração de festas e locação de brinquedos, a Bella Arte se dedica a criar momentos mágicos e inesquecíveis para você e sua família.";
+  const mission = settings?.about_mission || 
+    "Nossa paixão é ver o sorriso das crianças e a satisfação dos pais em cada evento que realizamos. Trabalhamos com dedicação, criatividade e muito carinho em cada detalhe.";
+
+  // Parse the title to highlight "Bella Arte"
+  const titleParts = title.split(/(Bella Arte)/i);
+
   return (
     <section className="py-20 md:py-32 bg-gradient-to-b from-muted/30 to-background">
       <div className="container px-4">
@@ -27,19 +39,21 @@ export const About = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold text-foreground">
-                Sobre a{" "}
-                <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Bella Arte
-                </span>
+                {titleParts.map((part, index) => 
+                  part.toLowerCase() === "bella arte" ? (
+                    <span key={index} className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                      {part}
+                    </span>
+                  ) : (
+                    <span key={index}>{part}</span>
+                  )
+                )}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Somos especialistas em transformar sonhos em realidade! Com anos de experiência em decoração 
-                de festas e locação de brinquedos, a Bella Arte se dedica a criar momentos mágicos e 
-                inesquecíveis para você e sua família.
+                {description}
               </p>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Nossa paixão é ver o sorriso das crianças e a satisfação dos pais em cada evento que 
-                realizamos. Trabalhamos com dedicação, criatividade e muito carinho em cada detalhe.
+                {mission}
               </p>
               <Button 
                 size="lg" 
