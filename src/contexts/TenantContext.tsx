@@ -54,23 +54,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Get tenant from subdomain or URL
-    const hostname = window.location.hostname;
-    const parts = hostname.split(".");
-    
-    // Check if we're on a subdomain (e.g., maria.celebrai.com)
-    if (parts.length >= 3 && parts[0] !== "www") {
-      fetchTenantBySlug(parts[0]);
-    } else {
-      // For development or main domain, check URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      const slugParam = urlParams.get("tenant");
-      if (slugParam) {
-        fetchTenantBySlug(slugParam);
-      } else {
-        setIsLoading(false);
-      }
-    }
+    // Site exclusivo para Bella Arte
+    fetchTenantBySlug("bellaarte");
   }, []);
 
   return (
