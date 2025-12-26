@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Services } from "@/components/Services";
@@ -16,14 +14,7 @@ import { TenantThemeProvider } from "@/components/TenantThemeProvider";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const { tenant, isLoading, setTenantBySlug } = useTenant();
-
-  useEffect(() => {
-    if (slug) {
-      setTenantBySlug(slug);
-    }
-  }, [slug, setTenantBySlug]);
+  const { tenant, isLoading } = useTenant();
 
   if (isLoading) {
     return (
