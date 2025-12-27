@@ -155,24 +155,26 @@ export const BudgetCalculator = () => {
                       <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent" />
                     </div>
                   ) : (
-                    services.map((service) => (
-                      <div
-                        key={service.id}
-                        className={cn(
-                          "flex items-start space-x-3 p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:border-primary",
-                          selectedServices.includes(service.id)
-                            ? "border-primary bg-primary/5"
-                            : "border-border"
-                        )}
-                        onClick={() => handleServiceToggle(service.id)}
-                      >
-                        <Checkbox
-                          id={service.id}
-                          checked={selectedServices.includes(service.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          onCheckedChange={() => handleServiceToggle(service.id)}
-                          className="mt-1"
-                        />
+                    services.map((service) => {
+                      const isSelected = selectedServices.includes(service.id);
+                      return (
+                        <div
+                          key={service.id}
+                          className={cn(
+                            "flex items-start space-x-3 p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer hover:border-primary",
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border"
+                          )}
+                          onClick={() => handleServiceToggle(service.id)}
+                        >
+                          <Checkbox
+                            id={service.id}
+                            checked={isSelected}
+                            onCheckedChange={() => {}}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 pointer-events-none"
+                          />
                         <div className="flex-1 space-y-1">
                           <Label
                             htmlFor={service.id}
@@ -190,7 +192,8 @@ export const BudgetCalculator = () => {
                           </p>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </CardContent>
               </Card>
