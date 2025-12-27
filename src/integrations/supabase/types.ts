@@ -19,12 +19,16 @@ export type Database = {
           client_name: string
           client_phone: string | null
           created_at: string
+          estimated_value: number | null
           event_date: string
           event_time: string | null
           event_type: string | null
           id: string
           location: string | null
           notes: string | null
+          parent_appointment_id: string | null
+          recurrence_end_date: string | null
+          recurrence_type: string | null
           status: string | null
           tenant_id: string | null
           updated_at: string
@@ -33,12 +37,16 @@ export type Database = {
           client_name: string
           client_phone?: string | null
           created_at?: string
+          estimated_value?: number | null
           event_date: string
           event_time?: string | null
           event_type?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          parent_appointment_id?: string | null
+          recurrence_end_date?: string | null
+          recurrence_type?: string | null
           status?: string | null
           tenant_id?: string | null
           updated_at?: string
@@ -47,17 +55,28 @@ export type Database = {
           client_name?: string
           client_phone?: string | null
           created_at?: string
+          estimated_value?: number | null
           event_date?: string
           event_time?: string | null
           event_type?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          parent_appointment_id?: string | null
+          recurrence_end_date?: string | null
+          recurrence_type?: string | null
           status?: string | null
           tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_parent_appointment_id_fkey"
+            columns: ["parent_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_tenant_id_fkey"
             columns: ["tenant_id"]
