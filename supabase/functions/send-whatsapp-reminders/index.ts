@@ -44,7 +44,7 @@ serve(async (req) => {
       `)
       .gte("event_date", todayStr)
       .lte("event_date", tomorrowStr)
-      .in("status", ["confirmado", "pendente"])
+      .in("status", ["confirmed", "pending"])
       .order("event_date", { ascending: true });
 
     if (appointmentsError) {
