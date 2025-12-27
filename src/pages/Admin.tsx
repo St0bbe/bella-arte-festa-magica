@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Image, DollarSign, Sparkles, Settings, Filter, Palette, CalendarDays } from "lucide-react";
+import { LogOut, Image, DollarSign, Sparkles, Settings, Filter, Palette, CalendarDays, BarChart3 } from "lucide-react";
 import { AdminServices } from "@/components/admin/AdminServices";
 import { AdminGallery } from "@/components/admin/AdminGallery";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { AdminFilters } from "@/components/admin/AdminFilters";
 import { AdminBranding } from "@/components/admin/AdminBranding";
 import { AdminAgenda } from "@/components/admin/AdminAgenda";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -98,8 +99,12 @@ export default function Admin() {
 
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="branding" className="space-y-8">
-          <TabsList className="grid w-full max-w-4xl grid-cols-6 mx-auto">
+        <Tabs defaultValue="dashboard" className="space-y-8">
+          <TabsList className="grid w-full max-w-5xl grid-cols-7 mx-auto">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="branding" className="flex items-center gap-2">
               <Palette className="w-4 h-4" />
               Marca
@@ -125,6 +130,10 @@ export default function Admin() {
               Config
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard">
+            <AdminDashboard />
+          </TabsContent>
 
           <TabsContent value="branding">
             <AdminBranding />

@@ -12,8 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Calendar, Clock, User, Phone, MapPin, CalendarDays, List, MessageCircle } from "lucide-react";
-import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from "date-fns";
+import { Plus, Pencil, Trash2, Calendar, Clock, User, Phone, MapPin, CalendarDays, List, MessageCircle, Repeat, DollarSign } from "lucide-react";
+import { format, startOfMonth, endOfMonth, isSameDay, parseISO, addDays, addWeeks, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,6 +28,10 @@ interface Appointment {
   notes: string | null;
   status: string | null;
   tenant_id: string | null;
+  recurrence_type: string | null;
+  recurrence_end_date: string | null;
+  parent_appointment_id: string | null;
+  estimated_value: number | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -42,6 +46,12 @@ const statusLabels: Record<string, string> = {
   confirmed: "Confirmado",
   completed: "Concluído",
   cancelled: "Cancelado",
+};
+
+const recurrenceLabels: Record<string, string> = {
+  weekly: "Semanal",
+  biweekly: "Quinzenal",
+  monthly: "Mensal",
 };
 
 export function AdminAgenda() {
@@ -60,6 +70,9 @@ export function AdminAgenda() {
     location: "",
     notes: "",
     status: "pending",
+    recurrence_type: "",
+    recurrence_end_date: "",
+    estimated_value: "",
   });
 
   // Get tenant ID
@@ -115,16 +128,28 @@ export function AdminAgenda() {
   });
 
   // Send WhatsApp notification
-  const sendWhatsAppNotification = (appointment: typeof formData) => {
+  const sendWhatsAppNotification = (appointment: { 
+    client_name: string; 
+    event_date: string; 
+    event_time: string; 
+    event_type: string; 
+    location: string; 
+    notes: string;
+    estimated_value?: string | number;
+  }) => {
     if (!tenant?.whatsapp_number) return;
     
     const formattedDate = format(new Date(appointment.event_date), "dd/MM/yyyy", { locale: ptBR });
+    const estimatedValue = appointment.estimated_value 
+      ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(appointment.estimated_value))
+      : 'A definir';
     const message = `🎉 *Novo Agendamento - ${tenant.name || 'Bella Arte'}*\n\n` +
       `👤 Cliente: ${appointment.client_name}\n` +
       `📅 Data: ${formattedDate}\n` +
       `⏰ Horário: ${appointment.event_time || 'A definir'}\n` +
       `🎊 Tipo: ${appointment.event_type || 'Não especificado'}\n` +
       `📍 Local: ${appointment.location || 'A definir'}\n` +
+      `💰 Valor: ${estimatedValue}\n` +
       `📝 Obs: ${appointment.notes || 'Nenhuma'}`;
     
     const whatsappUrl = `https://wa.me/${tenant.whatsapp_number}?text=${encodeURIComponent(message)}`;
@@ -135,13 +160,18 @@ export function AdminAgenda() {
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const appointmentData = {
-        ...data,
-        tenant_id: tenantId,
-        event_time: data.event_time || null,
+        client_name: data.client_name,
         client_phone: data.client_phone || null,
+        event_date: data.event_date,
+        event_time: data.event_time || null,
         event_type: data.event_type || null,
         location: data.location || null,
         notes: data.notes || null,
+        status: data.status,
+        tenant_id: tenantId,
+        recurrence_type: data.recurrence_type || null,
+        recurrence_end_date: data.recurrence_end_date || null,
+        estimated_value: data.estimated_value ? parseFloat(data.estimated_value) : 0,
       };
 
       if (editingAppointment) {
@@ -152,10 +182,47 @@ export function AdminAgenda() {
         if (error) throw error;
         return { isNew: false, data: appointmentData };
       } else {
-        const { error } = await supabase
+        // Insert the main appointment
+        const { data: insertedAppointment, error } = await supabase
           .from("appointments")
-          .insert(appointmentData);
+          .insert(appointmentData)
+          .select()
+          .single();
         if (error) throw error;
+
+        // Create recurring appointments if recurrence is set
+        if (data.recurrence_type && data.recurrence_end_date) {
+          const recurringAppointments = [];
+          let currentDate = parseISO(data.event_date);
+          const endDate = parseISO(data.recurrence_end_date);
+
+          while (currentDate <= endDate) {
+            // Get next date based on recurrence type
+            if (data.recurrence_type === 'weekly') {
+              currentDate = addWeeks(currentDate, 1);
+            } else if (data.recurrence_type === 'biweekly') {
+              currentDate = addWeeks(currentDate, 2);
+            } else if (data.recurrence_type === 'monthly') {
+              currentDate = addMonths(currentDate, 1);
+            }
+
+            if (currentDate <= endDate) {
+              recurringAppointments.push({
+                ...appointmentData,
+                event_date: format(currentDate, 'yyyy-MM-dd'),
+                parent_appointment_id: insertedAppointment.id,
+              });
+            }
+          }
+
+          if (recurringAppointments.length > 0) {
+            const { error: recError } = await supabase
+              .from("appointments")
+              .insert(recurringAppointments);
+            if (recError) throw recError;
+          }
+        }
+
         return { isNew: true, data };
       }
     },
@@ -226,6 +293,9 @@ export function AdminAgenda() {
       location: "",
       notes: "",
       status: "pending",
+      recurrence_type: "",
+      recurrence_end_date: "",
+      estimated_value: "",
     });
     setEditingAppointment(null);
     setIsDialogOpen(false);
@@ -242,6 +312,9 @@ export function AdminAgenda() {
       location: appointment.location || "",
       notes: appointment.notes || "",
       status: appointment.status || "pending",
+      recurrence_type: appointment.recurrence_type || "",
+      recurrence_end_date: appointment.recurrence_end_date || "",
+      estimated_value: appointment.estimated_value?.toString() || "",
     });
     setIsDialogOpen(true);
   };
@@ -348,7 +421,20 @@ export function AdminAgenda() {
                     placeholder="Endereço do evento"
                   />
                 </div>
-                <div className="col-span-2">
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    Valor Estimado
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.estimated_value}
+                    onChange={(e) => setFormData({ ...formData, estimated_value: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
                   <Label>Status</Label>
                   <Select
                     value={formData.status}
@@ -365,6 +451,40 @@ export function AdminAgenda() {
                     </SelectContent>
                   </Select>
                 </div>
+                {!editingAppointment && (
+                  <>
+                    <div>
+                      <Label className="flex items-center gap-1">
+                        <Repeat className="w-3 h-3" />
+                        Recorrência
+                      </Label>
+                      <Select
+                        value={formData.recurrence_type}
+                        onValueChange={(value) => setFormData({ ...formData, recurrence_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sem recorrência" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sem recorrência</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quinzenal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.recurrence_type && formData.recurrence_type !== "none" && (
+                      <div>
+                        <Label>Até quando?</Label>
+                        <Input
+                          type="date"
+                          value={formData.recurrence_end_date}
+                          onChange={(e) => setFormData({ ...formData, recurrence_end_date: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
                 <div className="col-span-2">
                   <Label>Observações</Label>
                   <Textarea
