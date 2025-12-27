@@ -71,7 +71,7 @@ export function AdminReminders() {
         .eq("tenant_id", tenant.id)
         .gte("event_date", format(today, 'yyyy-MM-dd'))
         .lte("event_date", format(twoDaysLater, 'yyyy-MM-dd'))
-        .in("status", ["pendente", "confirmado"])
+        .in("status", ["pending", "confirmed"])
         .order("event_date", { ascending: true });
       
       if (error) throw error;
