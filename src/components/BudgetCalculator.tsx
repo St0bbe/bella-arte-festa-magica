@@ -169,6 +169,7 @@ export const BudgetCalculator = () => {
                         <Checkbox
                           id={service.id}
                           checked={selectedServices.includes(service.id)}
+                          onClick={(e) => e.stopPropagation()}
                           onCheckedChange={() => handleServiceToggle(service.id)}
                           className="mt-1"
                         />
