@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, FileSignature, Send, Upload, MessageCircle, ExternalLink, Link, Copy, CheckCircle, Eye, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, FileSignature, Send, Upload, MessageCircle, ExternalLink, Link, Copy, CheckCircle, Eye, Clock, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { downloadContractPDF } from "@/utils/generateContractPDF";
 
 // Generate secure random token
 const generateSignatureToken = () => {
@@ -40,6 +41,14 @@ interface Contract {
   signed_at: string | null;
   signature_token: string | null;
   signature_data: string | null;
+  quote_id: string | null;
+}
+
+interface QuoteItem {
+  description: string;
+  quantity: number | null;
+  unit_price: number | null;
+  total_price: number | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -301,6 +310,53 @@ export function AdminContracts() {
     });
   };
 
+  // Download contract as PDF
+  const handleDownloadPDF = async (contract: Contract) => {
+    try {
+      // Fetch quote items if the contract has a quote_id
+      let quoteItems: QuoteItem[] = [];
+      let totalValue = 0;
+      
+      if (contract.quote_id) {
+        const { data: items } = await supabase
+          .from("quote_items")
+          .select("description, quantity, unit_price, total_price")
+          .eq("quote_id", contract.quote_id);
+        
+        if (items) {
+          quoteItems = items;
+          totalValue = items.reduce((sum, item) => sum + (item.total_price || 0), 0);
+        }
+      }
+
+      await downloadContractPDF({
+        clientName: contract.client_name,
+        clientEmail: contract.client_email || undefined,
+        clientPhone: contract.client_phone || undefined,
+        contractType: contract.contract_type || "party",
+        notes: contract.notes || undefined,
+        quoteItems: quoteItems.length > 0 ? quoteItems : undefined,
+        totalValue: totalValue || undefined,
+        tenantName: tenant?.name || "Bella Arte",
+        signatureData: contract.signature_data || undefined,
+        signedAt: contract.signed_at || undefined,
+        createdAt: contract.created_at,
+      });
+
+      toast({
+        title: "PDF gerado!",
+        description: "O contrato foi baixado com sucesso.",
+      });
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       client_name: "",
@@ -506,11 +562,19 @@ export function AdminContracts() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Baixar PDF do contrato"
+                        onClick={() => handleDownloadPDF(contract)}
+                      >
+                        <Download className="w-4 h-4 text-primary" />
+                      </Button>
                       {contract.file_url && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Ver contrato"
+                          title="Ver contrato anexado"
                           onClick={() => window.open(contract.file_url!, '_blank')}
                         >
                           <ExternalLink className="w-4 h-4" />
