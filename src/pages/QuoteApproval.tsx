@@ -118,6 +118,16 @@ export default function QuoteApproval() {
     
     setActionLoading(true);
     try {
+      // Fetch full quote data including tenant_id
+      const { data: fullQuote, error: fetchError } = await supabase
+        .from("quotes")
+        .select("*, quote_items(*)")
+        .eq("id", quote.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update quote status
       const { error } = await supabase
         .from("quotes")
         .update({
@@ -127,6 +137,43 @@ export default function QuoteApproval() {
         .eq("id", quote.id);
 
       if (error) throw error;
+
+      // Generate signature token for the contract
+      const generateSignatureToken = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let token = '';
+        for (let i = 0; i < 32; i++) {
+          token += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return token;
+      };
+
+      // Create contract automatically from the approved quote
+      const contractData = {
+        tenant_id: fullQuote.tenant_id,
+        quote_id: quote.id,
+        appointment_id: fullQuote.appointment_id,
+        client_name: quote.client_name,
+        client_email: quote.client_email,
+        client_phone: quote.client_phone,
+        contract_type: "party",
+        status: "draft",
+        signature_token: generateSignatureToken(),
+        notes: `Contrato gerado automaticamente a partir do orçamento aprovado.\n\nItens:\n${
+          fullQuote.quote_items?.map((item: any) => 
+            `- ${item.description}: ${item.quantity}x R$ ${item.unit_price?.toFixed(2)} = R$ ${item.total_price?.toFixed(2)}`
+          ).join('\n') || ''
+        }\n\nValor Total: R$ ${quote.total_value?.toFixed(2) || '0.00'}`,
+      };
+
+      const { error: contractError } = await supabase
+        .from("contracts")
+        .insert(contractData);
+
+      if (contractError) {
+        console.error("Error creating contract:", contractError);
+        // Don't throw - the quote was approved successfully, just log the contract error
+      }
 
       setQuote({ ...quote, status: "approved", approved_at: new Date().toISOString() });
     } catch (err: any) {
