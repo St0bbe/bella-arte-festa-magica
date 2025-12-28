@@ -9,10 +9,20 @@ import { NativeCheckbox } from "@/components/ui/native-checkbox";
 import { FileSignature, CheckCircle, AlertCircle, Download, Shield, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { downloadContractPDF } from "@/utils/generateContractPDF";
+
+interface QuoteItem {
+  description: string;
+  quantity: number | null;
+  unit_price: number | null;
+  total_price: number | null;
+}
 
 interface Contract {
   id: string;
   client_name: string;
+  client_email: string | null;
+  client_phone: string | null;
   contract_type: string | null;
   file_url: string | null;
   status: string | null;
@@ -21,6 +31,7 @@ interface Contract {
   notes: string | null;
   created_at: string;
   tenant_id: string;
+  quote_id: string | null;
 }
 
 interface Tenant {
@@ -40,6 +51,7 @@ export default function ContractSign() {
   const { token } = useParams<{ token: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
@@ -86,6 +98,18 @@ export default function ContractSign() {
           setTenant(tenantData);
         }
       }
+
+      // Fetch quote items if quote_id exists
+      if (contractData.quote_id) {
+        const { data: items } = await supabase
+          .from("quote_items")
+          .select("description, quantity, unit_price, total_price")
+          .eq("quote_id", contractData.quote_id);
+        
+        if (items) {
+          setQuoteItems(items);
+        }
+      }
     } catch (err: any) {
       console.error("Error fetching contract:", err);
       setError("Erro ao carregar contrato. Tente novamente.");
@@ -114,12 +138,33 @@ export default function ContractSign() {
       if (updateError) throw updateError;
 
       setSigned(true);
+      setContract({ ...contract, status: "signed", signed_at: new Date().toISOString(), signature_data: signatureData });
     } catch (err: any) {
       console.error("Error signing contract:", err);
       setError("Erro ao assinar contrato. Tente novamente.");
     } finally {
       setSigning(false);
     }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!contract) return;
+    
+    const totalValue = quoteItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+    
+    await downloadContractPDF({
+      clientName: contract.client_name,
+      clientEmail: contract.client_email || undefined,
+      clientPhone: contract.client_phone || undefined,
+      contractType: contract.contract_type || "party",
+      notes: contract.notes || undefined,
+      quoteItems: quoteItems.length > 0 ? quoteItems : undefined,
+      totalValue: totalValue || undefined,
+      tenantName: tenant?.name || "Bella Arte",
+      signatureData: contract.signature_data || undefined,
+      signedAt: contract.signed_at || undefined,
+      createdAt: contract.created_at,
+    });
   };
 
   if (loading) {
@@ -191,6 +236,11 @@ export default function ContractSign() {
                 <Shield className="w-4 h-4" />
                 Assinatura digital verificada
               </div>
+
+              <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Baixar Contrato em PDF
+              </Button>
 
               {tenant && (
                 <p className="text-sm text-muted-foreground">
