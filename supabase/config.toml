@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-whatsapp-reminders]
 verify_jwt = false
+
+[functions.send-contract-signed-email]
+verify_jwt = false
