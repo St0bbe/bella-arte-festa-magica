@@ -137,8 +137,26 @@ export default function ContractSign() {
 
       if (updateError) throw updateError;
 
+      const signedAt = new Date().toISOString();
       setSigned(true);
-      setContract({ ...contract, status: "signed", signed_at: new Date().toISOString(), signature_data: signatureData });
+      setContract({ ...contract, status: "signed", signed_at: signedAt, signature_data: signatureData });
+
+      // Send email notification
+      try {
+        await supabase.functions.invoke("send-contract-signed-email", {
+          body: {
+            contractId: contract.id,
+            clientName: contract.client_name,
+            clientEmail: contract.client_email,
+            tenantId: contract.tenant_id,
+            signedAt: signedAt,
+          },
+        });
+        console.log("Email notification sent successfully");
+      } catch (emailError) {
+        console.error("Error sending email notification:", emailError);
+        // Don't fail the signing process if email fails
+      }
     } catch (err: any) {
       console.error("Error signing contract:", err);
       setError("Erro ao assinar contrato. Tente novamente.");
